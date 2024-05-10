@@ -22,40 +22,36 @@ public class Student {
         grades.put(subject, new ArrayList<>());
     }
 
+    public List<Subject> getSubjects() {
+        return grades.entrySet().stream().map(entry -> entry.getKey()).toList();
+    }
+
     public void setGrade(Subject subject, Grade grade) {
+        if (!grades.containsKey(subject)) {
+            throw new IllegalArgumentException("Student does not attend this subject");
+        }
         grades.get(subject).add(grade);
     }
 
     public List<Grade> getGrades() {
-        List<Grade> allGrades = new ArrayList<>();
-        for (List<Grade> gradeList : grades.values()) {
-            allGrades.addAll(gradeList);
-        }
-        return allGrades;
+        return grades.values().stream().flatMap(List::stream).toList();
     }
 
     public double getAverageGrade() {
-        double total = 0;
-        int count = 0;
-        for (List<Grade> gradeList : grades.values()) {
-            for (Grade grade : gradeList) {
-                total += grade.getValue();
-                count++;
-            }
-        }
-        if (count == 0) {
-            throw new IllegalStateException("Student has not been graded in any subject");
-        }
-        return total / count;
+        return grades.values().stream()
+                .flatMap(List::stream)
+                .mapToDouble(grade -> grade.getValue())
+                .average()
+                .orElse(0.0);
     }
 
     public double getAverageGradeBySubject(Subject subject) {
         List<Grade> gradeList = grades.get(subject);
 
-        double total = 0;
-        for (Grade grade : gradeList) {
-            total += grade.getValue();
-        }
+        double total = gradeList.stream()
+                .mapToInt(grade -> grade.getValue())
+                .sum();
+
         return total / gradeList.size();
     }
 }

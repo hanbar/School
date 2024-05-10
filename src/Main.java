@@ -37,6 +37,14 @@ public class Main {
                 subjects.forEach(subject -> student.takeSubject(subject))
         ));
 
+        // Validations
+        if (students.stream().anyMatch(student -> student.getSubjects().size() < 3)) {
+            throw new RuntimeException("Each student has to take at least 3 subjects");
+        }
+        if (classes.stream().anyMatch(clazz -> clazz.getStudents().size() < 3)) {
+            throw new RuntimeException("Each class has to have at least 3 students");
+        }
+
         // Set random grades
         Random random = new Random();
         classes.forEach(clazz -> clazz.getStudents().forEach(student ->
@@ -45,56 +53,67 @@ public class Main {
 
         // Statistics
         printSortedStudentsByAverageGrade(students);
+        System.out.println();
+
         printSortedSubjectsByAverageOfGrades(subjects, students);
+        System.out.println();
+
         printSortedClassesByBestStudents(classes);
+        System.out.println();
     }
 
     // Print sorted students by their average grades
     public static void printSortedStudentsByAverageGrade(List<Student> students) {
-        System.out.println("Sorted students by their average grades:");
-
-        students.stream()
+        List<String> sortedStudents = students.stream()
                 .sorted(Comparator.comparingDouble(Student::getAverageGrade))
-                .forEach(student -> System.out.println(student.getName() + ": "
+                .map(student -> student.getName() + ": "
                         + String.format("%.1f", student.getAverageGrade())
                         + " (" + student.getGrades().stream()
                         .map(Grade::getValue)
                         .map(String::valueOf)
-                        .collect(Collectors.joining(", ")) + ")"));
-        System.out.println();
+                        .collect(Collectors.joining(", ")) + ")")
+                .toList();
+
+        System.out.println("Sorted students by their average grades:");
+        sortedStudents.forEach(System.out::println);
     }
 
     // Print sorted subjects by average of grades given to students
     public static void printSortedSubjectsByAverageOfGrades(List<Subject> subjects, List<Student> students) {
-        System.out.println("Sorted subjects by average of grades given to students:");
+        List<String> sortedSubjects = subjects.stream()
+                .sorted(Comparator.comparingDouble(subject -> getAverageGradeForSubject(subject, students)))
+                .map(subject -> subject.getName() + ": " + String.format("%.1f", getAverageGradeForSubject(subject, students)))
+                .toList();
 
-        subjects.stream()
-                // .sorted(Comparator.comparingDouble(subject -> avg))
-                .forEach(subject -> {
-                    double totalBySubject = 0;
-                    for (Student student : students) {
-                        totalBySubject += student.getAverageGradeBySubject(subject);
-                    }
-                    double avg = totalBySubject / students.size();
-                    System.out.println(subject.getName() + ": " + String.format("%.1f", avg));
-                });
-        System.out.println();
+        System.out.println("Sorted subjects by average of grades given to students:");
+        sortedSubjects.forEach(System.out::println);
+    }
+
+    private static double getAverageGradeForSubject(Subject subject, List<Student> students) {
+        double totalAvg = students.stream()
+                .mapToDouble(student -> student.getAverageGradeBySubject(subject))
+                .sum();
+
+        return totalAvg / students.size();
     }
 
     // Print sorted classes with the best students (by average of each student’s average grade)
     public static void printSortedClassesByBestStudents(List<Clazz> classes) {
-        System.out.println("Sorted classes with the best students:");
+        List<String> sortedClasses = classes.stream()
+                .sorted(Comparator.comparingDouble(Main::getAverageGradeInClass))
+                .map(clazz -> clazz.getName() + ": " + String.format("%.1f", getAverageGradeInClass(clazz)))
+                .toList();
 
-        classes.stream()
-                // .sorted(Comparator.comparingDouble(clazz -> avg))
-                .forEach(clazz -> {
-                    double totalByStudent = 0;
-                    for (Student student : clazz.getStudents()) {
-                        totalByStudent += student.getAverageGrade();
-                    }
-                    double avg = totalByStudent / clazz.getStudents().size();
-                    System.out.println(clazz.getName() + ": " + String.format("%.1f", avg));
-                });
-        System.out.println();
+        System.out.println("Sorted classes with the best students:");
+        sortedClasses.forEach(System.out::println);
+    }
+
+    private static double getAverageGradeInClass(Clazz clazz) {
+        List<Student> students = clazz.getStudents();
+        double totalAverageGrade = students.stream()
+                .mapToDouble(Student::getAverageGrade)
+                .sum();
+
+        return totalAverageGrade / students.size();
     }
 }
